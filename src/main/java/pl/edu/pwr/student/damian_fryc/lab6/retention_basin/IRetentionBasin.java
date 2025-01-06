@@ -1,4 +1,4 @@
-package pl.edu.pwr.student.damian_fryc.lab6;
+package pl.edu.pwr.student.damian_fryc.lab6.retention_basin;
 
 public interface IRetentionBasin {
 	int getWaterDischarge();

@@ -1,4 +1,4 @@
-package pl.edu.pwr.student.damian_fryc.lab6;
+package pl.edu.pwr.student.damian_fryc.lab6.river_section;
 
 public interface IRiverSection {
 	void setRealDischarge(int realDischarge);
