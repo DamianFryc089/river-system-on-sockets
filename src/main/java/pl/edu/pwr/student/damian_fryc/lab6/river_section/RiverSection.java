@@ -10,10 +10,12 @@ public class RiverSection implements IRiverSection {
 	private int realDischarge = 0;
 	private int rainfall = 0;
 
+	private Thread serverThread;
+	private ServerSocket serverSocket;
+
 	public RiverSection(int riverSize, int port) {
 		this.port = port;
 		waterFragments = new int[riverSize];
-		startServer();
 	}
 
 	@Override
@@ -33,30 +35,31 @@ public class RiverSection implements IRiverSection {
 		System.out.println("Assigned retention basin at host: " + host + ", port: " + port);
 	}
 
-	private void startServer() {
-		Thread serverThread = new Thread(() -> {
-			try (ServerSocket serverSocket = new ServerSocket(port)) {
-				System.out.println("River Section Server is running on port " + port);
+	public void startServer() {
+		serverThread = new Thread(() -> {
+			try{
+				serverSocket = new ServerSocket(port);
+				System.out.println("River section server is running on port " + port);
 				while (true) {
 					Socket clientSocket = serverSocket.accept();
 					BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-					PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
 					String request = in.readLine();
-					String response = handleRequest(request);
-					if (response != null) {
-						out.println(response);
-					}
+					handleRequest(request);
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			} catch (IOException ignored) {}
 		});
 
 		serverThread.start();
 	}
+	public void stopServer() {
+		serverThread.interrupt();
+		try {
+			serverSocket.close();
+		} catch (IOException ignored) {}
+	}
 
-	private String handleRequest(String request) {
+	private void handleRequest(String request) {
 		if (request.startsWith("srd:")) {
 			setRealDischarge(Integer.parseInt(request.split(":")[1]));
 		} else if (request.startsWith("srf:")) {
@@ -66,7 +69,6 @@ public class RiverSection implements IRiverSection {
 			assignRetentionBasin(Integer.parseInt(params[1]), params[2]);
 		}
 		else System.err.println("Unknown request: " + request);
-		return null;
 	}
 
 	public void riverLogic(){
@@ -85,12 +87,12 @@ public class RiverSection implements IRiverSection {
 		     PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 			out.println("swi:" + waterToRemove+","+port);
 		} catch (IOException e) {
-			System.err.println("Failed to water info to retention basin: " + e.getMessage());
+			System.err.println("Failed to water info to outflow basin: " + e.getMessage());
 		}
 	}
 
-	public boolean setInflowBasin(String inflowRiverHost, int inflowRiverPort){
-		try (Socket socket = new Socket(inflowRiverHost, inflowRiverPort);
+	public boolean setInflowBasin(String inflowBasinHost, int inflowBasinPort){
+		try (Socket socket = new Socket(inflowBasinHost, inflowBasinPort);
 		     PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 			out.println("ars:"+port+","+InetAddress.getLocalHost().getHostAddress());
 		} catch (IOException e) {

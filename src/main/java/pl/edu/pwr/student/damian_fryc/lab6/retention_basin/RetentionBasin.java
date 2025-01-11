@@ -14,12 +14,13 @@ public class RetentionBasin implements IRetentionBasin {
 	private int outflowRiverPort;
 
 	private final Map<Integer, Integer> inflows = new HashMap<>();
+	private Thread serverThread;
+	private ServerSocket serverSocket;
 
 	public RetentionBasin(int maxVolume, int port ) {
 		this.maxVolume = maxVolume;
 		this.port = port;
 		waterDischarge = maxVolume / 10;
-		startServer();
 	}
 
 	public boolean setControlCenter(String controlCenterHost, int controlCenterPort){
@@ -71,10 +72,11 @@ public class RetentionBasin implements IRetentionBasin {
 		System.out.println("Assigned river section at host: " + host + ", port: " + port);
 	}
 
-	private void startServer() {
-		Thread serverThread = new Thread(() -> {
-			try (ServerSocket serverSocket = new ServerSocket(port)) {
-				System.out.println("Retention Basin Server is running on port " + port);
+	public void startServer() {
+		 serverThread = new Thread(() -> {
+			try {
+				serverSocket = new ServerSocket(port);
+				System.out.println("Retention basin server is running on port " + port);
 				while (true) {
 					Socket clientSocket = serverSocket.accept();
 					BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -83,17 +85,22 @@ public class RetentionBasin implements IRetentionBasin {
 					String request = in.readLine();
 					String response = handleRequest(request);
 					if (response != null) {
+//						if(response.equals("0")) return;
 						out.println(response);
 					}
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			} catch (IOException ignored) {}
 		});
 
 		serverThread.start();
 	}
 
+	public void stopServer() {
+		serverThread.interrupt();
+		try {
+			serverSocket.close();
+		} catch (IOException ignored) {}
+	}
 	private String handleRequest(String request) {
 		if (request.equals("gwd")) {
 			return String.valueOf(getWaterDischarge());
@@ -135,15 +142,15 @@ public class RetentionBasin implements IRetentionBasin {
 
 		if(realDischarge == 0)
 			return;
+		if(outflowRiverHost == null)
+			return;
 
 		try (Socket socket = new Socket(outflowRiverHost, outflowRiverPort);
 		     PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 			out.println("srd:"+realDischarge);
 		} catch (IOException e) {
-			System.err.println("Failed to send message to control center: " + e.getMessage());
+			System.err.println("Failed to send message to outflow river: " + e.getMessage());
 		}
-		System.out.println("Current real discharge: " + realDischarge);
-
 	}
 
 	public int getCurrentVolume() {

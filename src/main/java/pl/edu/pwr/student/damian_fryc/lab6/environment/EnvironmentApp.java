@@ -50,6 +50,8 @@ public class EnvironmentApp extends Application{
 		Button acceptButton = new Button("Set");
 		acceptButton.setOnAction(event -> {
 			environment = new Environment(Integer.parseInt(portInput.getText()));
+			environment.startServer();
+			stage.setOnCloseRequest(event2 -> environment.stopServer());
 			stage.setTitle("Environment - " + Integer.parseInt(portInput.getText()));
 			startUpdatingInfos();
 		});
@@ -84,7 +86,7 @@ public class EnvironmentApp extends Application{
 
 			for (int i = 0; i < newRiverInfos.size(); i++) {
 				riverInfosHostAndPort.get(i).setText(newRiverInfos.get(i).getHost() + ":" + newRiverInfos.get(i).getPort());
-				riverInfosRainfall.get(i).setText(newRiverInfos.get(i).rainAmount + "m3/s");
+				riverInfosRainfall.get(i).setText(newRiverInfos.get(i).rainAmount + "m³/s");
 			}
 		});
 	}
@@ -110,10 +112,10 @@ public class EnvironmentApp extends Application{
 		}));
 
 		Button changeDischargeButton = new Button("Change");
-		changeDischargeButton.setOnAction(event -> {
-			environment.setRainfall(i, Integer.parseInt(newRainfall.getText()));
-		});
-		HBox newRainfallBox = new HBox(new Text("New: "), newRainfall, new Text("m3/s"), changeDischargeButton);
+		changeDischargeButton.setOnAction(event -> environment.setRainfall(i, Integer.parseInt(newRainfall.getText())));
+
+
+		HBox newRainfallBox = new HBox(5, new Text("New: "), newRainfall, new Text("m³/s"), changeDischargeButton);
 		newRainfallBox.setAlignment(Pos.CENTER);
 
 		newBasin.getChildren().addAll(newBasinInfosHostAndPort, fillingInfo, newRainfallBox);

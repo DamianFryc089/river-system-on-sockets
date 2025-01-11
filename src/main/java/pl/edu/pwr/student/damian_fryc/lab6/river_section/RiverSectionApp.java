@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.layout.HBox;
@@ -15,7 +16,7 @@ import javafx.stage.Stage;
 public class RiverSectionApp extends Application{
 		private RiverSection riverSection;
 		private final StackPane mainPane = new StackPane();
-		private Text[] waterFragments;
+		private Label[] waterFragments;
 
 		@Override
 		public void start(Stage stage) {
@@ -54,10 +55,12 @@ public class RiverSectionApp extends Application{
 			Button acceptButton = new Button("Set");
 			acceptButton.setOnAction(event -> {
 				riverSection = new RiverSection(Integer.parseInt(size.getText()), Integer.parseInt(portInput.getText()));
+				riverSection.startServer();
+				stage.setOnCloseRequest(event2 -> riverSection.stopServer());
 
-				waterFragments = new Text[riverSection.waterFragments.length];
+				waterFragments = new Label[riverSection.waterFragments.length];
 				for (int i = 0; i < waterFragments.length; i++)
-					waterFragments[i] = new Text();
+					waterFragments[i] = new Label();
 
 				stage.setTitle("River Section - " + Integer.parseInt(portInput.getText()));
 				environmentInput();
@@ -140,7 +143,7 @@ public class RiverSectionApp extends Application{
 			mainPane.getChildren().clear();
 			Button acceptButton = new Button("START");
 			acceptButton.setOnAction(event -> {
-				showFillingPercentage();
+				showFillingPercentageColumn();
 
 				Thread updateThread = new Thread(() -> {
 					try {
@@ -160,11 +163,35 @@ public class RiverSectionApp extends Application{
 			mainPane.getChildren().add(acceptButton);
 		}
 
-		private void showFillingPercentage(){
+		private void showFillingPercentageColumn(){
 			mainPane.getChildren().clear();
 			VBox vbox = new VBox(waterFragments);
+			vbox.setOnMouseClicked(event -> showFillingPercentageRow());
+			vbox.setStyle(
+					"-fx-border-color: #2c2c2c;" +
+					"-fx-border-width: 1;" +
+					"-fx-border-radius: 5;" +
+					"-fx-padding: 2;" +
+					"-fx-background-color: #f9f9f9;"
+			);
+
 			vbox.alignmentProperty().set(Pos.CENTER);
 			mainPane.getChildren().add(vbox);
+			updateWaterFragments();
+		}
+		private void showFillingPercentageRow(){
+			mainPane.getChildren().clear();
+			HBox hbox = new HBox(waterFragments);
+			hbox.setOnMouseClicked(event -> showFillingPercentageColumn());
+			hbox.setStyle(
+					"-fx-border-color: #2c2c2c;" +
+					"-fx-border-width: 1;" +
+					"-fx-border-radius: 5;" +
+					"-fx-padding: 2;" +
+					"-fx-background-color: #f9f9f9;"
+			);
+			hbox.alignmentProperty().set(Pos.CENTER);
+			mainPane.getChildren().add(hbox);
 			updateWaterFragments();
 		}
 
@@ -172,6 +199,14 @@ public class RiverSectionApp extends Application{
 			javafx.application.Platform.runLater(() -> {
 				for (int i = 0; i < waterFragments.length; i++) {
 					waterFragments[i].setText(riverSection.waterFragments[i]+"");
+
+					waterFragments[i].setStyle(
+							"-fx-border-color: #3a3a3a;" +
+							"-fx-border-width: 1;" +
+							"-fx-padding: 2;" +
+							"-fx-background-color: #f9f9f9;" +
+							"-fx-font-size: "+ Math.max(10, 100 / waterFragments.length) + ";"
+					);
 				}
 			});
 		}

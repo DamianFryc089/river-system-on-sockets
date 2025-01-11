@@ -1,6 +1,9 @@
 package pl.edu.pwr.student.damian_fryc.lab6.control_center;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -8,10 +11,11 @@ import java.util.ArrayList;
 public class ControlCenter implements IControlCenter {
 	private final int port;
 	private final ArrayList<RetentionBasinInfo> retentionBasins = new ArrayList<>();
+	private Thread serverThread;
+	private ServerSocket serverSocket;
 
 	public ControlCenter(int port) {
 		this.port = port;
-		startServer();
 	}
 
 	@Override
@@ -45,11 +49,12 @@ public class ControlCenter implements IControlCenter {
 		System.out.println(newRetentionBasin);
 	}
 
-	private void startServer() {
-		Thread serverThread = new Thread(() -> {
-			try (ServerSocket serverSocket = new ServerSocket(port)) {
-				System.out.println("Control Center Server is running on port " + port);
-				while (true) {
+	public void startServer() {
+		 serverThread = new Thread(() -> {
+			try {
+				serverSocket = new ServerSocket(port);
+				System.out.println("Control Center server is running on port " + port);
+				while (!Thread.currentThread().isInterrupted()) {
 					Socket clientSocket = serverSocket.accept();
 
 					BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -61,15 +66,19 @@ public class ControlCenter implements IControlCenter {
 						System.out.println("Retention Basin registered at " + data[1] + ":" + Integer.parseInt(data[0]));
 					}
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		});
+			} catch (IOException ignored) {}
+         });
 
 		serverThread.start();
 	}
-
+	public void stopServer() {
+		serverThread.interrupt();
+		try {
+			serverSocket.close();
+		} catch (IOException ignored) {}
+    }
 	public void setWaterDischarge(int basinId, int waterDischarge){
+//		if(waterDischarge == 0) return;
 		RetentionBasinInfo retentionBasin = retentionBasins.get(basinId);
 		try (Socket socket = new Socket(retentionBasin.getHost(), retentionBasin.getPort());
 		     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -95,6 +104,8 @@ public class ControlCenter implements IControlCenter {
 
 			} catch (IOException e) {
 				System.err.println("Failed to send message to retention basin: " + e.getMessage());
+				retentionBasins.remove(retentionBasin);
+				return new ArrayList<>();
 			}
 		}
 		return retentionBasins;

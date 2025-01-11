@@ -10,6 +10,8 @@ import javafx.scene.control.TextFormatter;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
@@ -18,10 +20,20 @@ public class RetentionBasinApp extends Application {
 	private final StackPane mainPane = new StackPane();
 	private final Label fillingLabelPercentage = new Label();
 	private final Label fillingLabelValue = new Label();
+	private final Rectangle backgroundFillBlock = new Rectangle();
+
+	private double windowWidth = 0;
+	private double windowHeight = 0;
 
 	@Override
 	public void start(Stage stage) {
 		Scene scene = new Scene(mainPane, 300, 250);
+
+		windowWidth = scene.getWidth();
+		windowHeight = scene.getHeight();
+		scene.widthProperty().addListener((observable, oldValue, newValue) -> windowWidth = scene.getWidth());
+		scene.heightProperty().addListener((observable, oldValue, newValue) -> windowHeight = scene.getHeight());
+
 		retentionBasinInput(stage);
 
 		stage.setTitle("Retention Basin");
@@ -56,6 +68,8 @@ public class RetentionBasinApp extends Application {
 		Button acceptButton = new Button("Set");
 		acceptButton.setOnAction(event -> {
 			basin = new RetentionBasin(Integer.parseInt(maxVolume.getText()), Integer.parseInt(portInput.getText()));
+			basin.startServer();
+			stage.setOnCloseRequest(event2 -> basin.stopServer());
 			stage.setTitle("Retention Basin - " + Integer.parseInt(portInput.getText()));
 			controlCenterInput();
 		});
@@ -158,16 +172,33 @@ public class RetentionBasinApp extends Application {
 
 	private void showFillingPercentage(){
 		mainPane.getChildren().clear();
+		fillingLabelValue.setStyle(
+				"-fx-font-size: 25;"
+		);
+		fillingLabelPercentage.setStyle(
+				"-fx-font-size: 25;"
+		);
 		VBox vbox = new VBox(5, fillingLabelValue, fillingLabelPercentage);
 		vbox.alignmentProperty().set(Pos.CENTER);
-		mainPane.getChildren().add(vbox);
+
+		backgroundFillBlock.setWidth(0);
+		backgroundFillBlock.setHeight(0);
+		backgroundFillBlock.setFill(Color.LIGHTBLUE);
+
+		mainPane.getChildren().addAll(backgroundFillBlock, vbox);
 		updateFillingPercentage();
 	}
 
 	private void updateFillingPercentage() {
 		javafx.application.Platform.runLater(() -> {
-			fillingLabelValue.setText(basin.getCurrentVolume() + " / " + basin.getMaxVolume());
-			fillingLabelPercentage.setText(basin.getFillingPercentage() + "%");
+			fillingLabelValue.setText(basin.getCurrentVolume() + " / " + basin.getMaxVolume()+"m³");
+
+			long percentage = basin.getFillingPercentage();
+			fillingLabelPercentage.setText(percentage + "%");
+
+			backgroundFillBlock.setWidth(windowWidth);
+			backgroundFillBlock.setHeight(windowHeight * percentage / 50);
+			backgroundFillBlock.setTranslateY(windowHeight/2);
 		});
 	}
 

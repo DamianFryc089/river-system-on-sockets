@@ -22,13 +22,11 @@ public class ControlCenterApp extends Application {
 	private final ArrayList<Text> basinInfosHostAndPort = new ArrayList<>();
 	private final ArrayList<Text> basinInfosFillingPercentage = new ArrayList<>();
 	private final ArrayList<Text> basinInfosCurrentDischarge = new ArrayList<>();
-//	private final ArrayList<TextField> basinInfosNewDischarge = new ArrayList<>();
 
 	@Override
 	public void start(Stage stage) {
 		Scene scene = new Scene(mainPane, 600, 300);
 		controlCenterInput(stage);
-
 		stage.setTitle("Control Center");
 		stage.setScene(scene);
 		stage.show();
@@ -52,6 +50,8 @@ public class ControlCenterApp extends Application {
 		Button acceptButton = new Button("Set");
 		acceptButton.setOnAction(event -> {
 			controlCenter = new ControlCenter(Integer.parseInt(portInput.getText()));
+			controlCenter.startServer();
+			stage.setOnCloseRequest(event2 -> controlCenter.stopServer());
 			stage.setTitle("Control Center - " + Integer.parseInt(portInput.getText()));
 			startUpdatingInfos();
 		});
@@ -80,13 +80,20 @@ public class ControlCenterApp extends Application {
 	private void updateBasinInfos() {
 		javafx.application.Platform.runLater(() -> {
 			ArrayList<RetentionBasinInfo> newBasinsInfo = controlCenter.updatePercentages();
+			if(newBasinsInfo.isEmpty()) {
+				basinBoxes.getChildren().clear();
+				basinInfosHostAndPort.clear();
+				basinInfosFillingPercentage.clear();
+				basinInfosCurrentDischarge.clear();
+				return;
+			}
 			for (int i = basinBoxes.getChildren().size(); i < newBasinsInfo.size(); i++)
 				createNewBasinBox(i);
 
 			for (int i = 0; i < newBasinsInfo.size(); i++) {
 				basinInfosHostAndPort.get(i).setText(newBasinsInfo.get(i).getHost() + ":" + newBasinsInfo.get(i).getPort());
 				basinInfosFillingPercentage.get(i).setText(newBasinsInfo.get(i).fillingPercentage + "%");
-				basinInfosCurrentDischarge.get(i).setText(newBasinsInfo.get(i).waterDischarge + "m3/s");
+				basinInfosCurrentDischarge.get(i).setText(newBasinsInfo.get(i).waterDischarge + "m³/s");
 			}
 		});
 	}
@@ -113,12 +120,9 @@ public class ControlCenterApp extends Application {
 				return change;
 			return null;
 		}));
-//		basinInfosNewDischarge.add(newDischarge);
 		Button changeDischargeButton = new Button("Change");
-		changeDischargeButton.setOnAction(event -> {
-			controlCenter.setWaterDischarge(i, Integer.parseInt(newDischarge.getText()));
-		});
-		HBox newDischargeBox = new HBox(new Text("New: "), newDischarge, new Text("m3/s"), changeDischargeButton);
+		changeDischargeButton.setOnAction(event -> controlCenter.setWaterDischarge(i, Integer.parseInt(newDischarge.getText())));
+		HBox newDischargeBox = new HBox(5, new Text("New: "), newDischarge, new Text("m³/s"), changeDischargeButton);
 		newDischargeBox.setAlignment(Pos.CENTER);
 
 		newBasin.getChildren().addAll(newBasinInfosHostAndPort, fillingInfo, currentDischarge, newDischargeBox);
